@@ -5,7 +5,38 @@
     android:layout_height="match_parent"
     tools:context="com.carpediem.randy.scrollproject.MainActivity">
 
-    <com.carpediem.randy.scrollproject.OnePointerDrawView
+    <com.carpediem.randy.scrollproject.HOverScrollView
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:orientation="vertical"
+        android:layout_height="match_parent">
+        <TextView
+            android:layout_width="300dp"
+            android:text="DDDDDDDDDDDDDD"
+            android:layout_height="300dp" />
+        <View
+            android:layout_width="200dp"
+            android:background="#0000ff"
+            android:layout_height="200dp"/>
+        <View
+            android:layout_width="500dp"
+            android:layout_height="500dp"
+            android:background="#00ff00"/>
+        <View
+            android:layout_width="200dp"
+            android:background="#0000ff"
+            android:layout_height="200dp"/>
+        <View
+            android:layout_width="500dp"
+            android:layout_height="500dp"
+            android:background="#00ff00"/>
+        <View
+            android:layout_width="200dp"
+            android:background="#0000ff"
+            android:layout_height="200dp"/>
+        <View
+            android:layout_width="500dp"
+            android:layout_height="500dp"
+            android:background="#00ff00"/>
+    </com.carpediem.randy.scrollproject.HOverScrollView>
+
 </RelativeLayout>

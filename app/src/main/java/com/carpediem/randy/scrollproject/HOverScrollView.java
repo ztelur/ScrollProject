@@ -6,18 +6,18 @@ import android.util.AttributeSet;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.VelocityTracker;
+import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewParent;
 import android.widget.LinearLayout;
-import android.widget.Scroller;
+import android.widget.OverScroller;
 
 /**
- * Created by randy on 16-3-29.
+ * Created by randy on 16-4-5.
  */
-public class HScrollView extends LinearLayout {
+public class HOverScrollView extends LinearLayout{
     private final static int INVALID_ID = -1;
     private int mActivePointerId = INVALID_ID;
-    private float mLastX=0;
     private float mLastY=0;
 
 
@@ -30,21 +30,25 @@ public class HScrollView extends LinearLayout {
     private int mTouchSlop;
     private int mMinFlingSpeed;
     private int mMaxFlingSpeed;
-
-    private Scroller mScroller;
+    private int mOverFlingDistance;
+    private int mOverScrollDistance;
+    private OverScroller mScroller;
     private VelocityTracker mVelocityTracker;
 
-    public HScrollView(Context context) {
+    private int mScrollX = 0;
+    private int mScrollY = 0;
+
+    public HOverScrollView(Context context) {
         super(context);
         init(context);
     }
 
-    public HScrollView(Context context, AttributeSet attrs) {
+    public HOverScrollView(Context context, AttributeSet attrs) {
         super(context, attrs);
         init(context);
     }
 
-    public HScrollView(Context context, AttributeSet attrs, int defStyleAttr) {
+    public HOverScrollView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         init(context);
     }
@@ -55,7 +59,9 @@ public class HScrollView extends LinearLayout {
         mTouchSlop = configuration.getScaledTouchSlop();
         mMinFlingSpeed = configuration.getScaledMinimumFlingVelocity();
         mMaxFlingSpeed = configuration.getScaledMaximumFlingVelocity();
-        mScroller = new Scroller(context);
+        mOverFlingDistance = configuration.getScaledOverflingDistance();
+        mOverScrollDistance = configuration.getScaledOverscrollDistance();
+        mScroller = new OverScroller(context);
     }
 
     private void initVelocityTrackerIfNotExist() {
@@ -180,7 +186,7 @@ public class HScrollView extends LinearLayout {
                 if (mIsBeingDragged) {
                     //直接滑动
                     Log.e("TEST",deltaY+"");
-                    scrollBy(0,(int)deltaY);
+                    overScrollBy(0,(int)deltaY,0,getScrollY(),0,getScrollRange(),0,mOverScrollDistance,true);
                     mLastY = y;
                 }
                 if (mSecondaryPointerId != INVALID_ID) {
@@ -234,14 +240,42 @@ public class HScrollView extends LinearLayout {
     }
     @Override
     protected void onOverScrolled(int scrollX, int scrollY, boolean clampedX, boolean clampedY) {
-        super.onOverScrolled(scrollX, scrollY, clampedX, clampedY);
+        Log.e("TEST","onOverScrolled"+scrollX);
+        if (!mScroller.isFinished()) {
+            int oldX = mScrollX;
+            int oldY = mScrollY;
+            mScrollX = scrollX;
+            mScrollY = scrollY;
+            onScrollChanged(mScrollX,mScrollY,oldX,oldY);
+
+            if (clampedY) {
+                mScroller.springBack(mScrollX,mScrollY,0,0,0,getScrollRange());
+            }
+        } else {
+            // TouchEvent中的overScroll调用
+            super.scrollTo(scrollX,scrollY);
+        }
     }
 
     @Override
     public void computeScroll() {
         if (mScroller.computeScrollOffset()) {
-            scrollTo(mScroller.getCurrX(),mScroller.getCurrY());
-            postInvalidate();
+            int oldX = mScrollX;
+            int oldY = mScrollY;
+            int x = mScroller.getCurrX();
+            int y = mScroller.getCurrY();
+            int range = getScrollRange();
+            if (oldX != x || oldY != y) {
+                overScrollBy(x-oldX,y-oldY,oldX,oldY,0,range,0,mOverFlingDistance,false);
+            }
         }
+    }
+    private int getScrollRange() {
+        int scrollRange = 0;
+        if (getChildCount() >0) {
+            View child = getChildAt(0);
+            scrollRange= Math.max(0,child.getHeight()-(getHeight()-getPaddingBottom()-getPaddingTop()));
+        }
+        return 10000;
     }
 }

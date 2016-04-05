@@ -16,7 +16,7 @@ import android.view.ViewConfiguration;
  */
 public class OnePointerDrawView extends View {
     private final static int INVALID_ID = -1;
-    private int mActivePointerId = INVALID_ID;
+
     private float mLastX;
     private float mLastY;
     private Paint mPaint;
@@ -77,25 +77,16 @@ public class OnePointerDrawView extends View {
         int actionId = MotionEventCompat.getActionMasked(event);
         switch (actionId) {
             case MotionEvent.ACTION_DOWN:
-                int mActivePointerIndex = MotionEventCompat.getActionIndex(event);
-                mActivePointerId = MotionEventCompat.findPointerIndex(event,mActivePointerIndex);
-                mLastX = MotionEventCompat.getX(event,mActivePointerIndex);
-                mLastY = MotionEventCompat.getY(event,mActivePointerIndex);
+                mLastX = event.getX();
+                mLastY = event.getY();
                 mIsBeingDragged = true;
                 if (getParent() != null) {
                     getParent().requestDisallowInterceptTouchEvent(true);
                 }
                 break;
             case MotionEvent.ACTION_MOVE:
-                if (mActivePointerId == INVALID_ID) {
-                    break;
-                }
-                mActivePointerIndex = MotionEventCompat.findPointerIndex(event,mActivePointerId);
-                if (mActivePointerIndex == -1) {
-                    break;
-                }
-                float curX = MotionEventCompat.getX(event,mActivePointerIndex);
-                float curY = MotionEventCompat.getY(event,mActivePointerIndex);
+                float curX = event.getX();
+                float curY = event.getY();
                 int deltaX = (int) (mLastX - curX);
                 int deltaY = (int) (mLastY - curY);
                 if (!mIsBeingDragged && (Math.abs(deltaX)> mTouchSlop ||
@@ -125,7 +116,6 @@ public class OnePointerDrawView extends View {
             case MotionEvent.ACTION_CANCEL:
             case MotionEvent.ACTION_UP:
                 mIsBeingDragged = false;
-                mActivePointerId = INVALID_ID;
                 mLastY = 0;
                 mLastX = 0;
                 break;
