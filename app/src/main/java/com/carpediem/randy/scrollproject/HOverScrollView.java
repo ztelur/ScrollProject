@@ -1,7 +1,9 @@
 package com.carpediem.randy.scrollproject;
 
 import android.content.Context;
+import android.graphics.Canvas;
 import android.support.v4.view.MotionEventCompat;
+import android.support.v4.widget.EdgeEffectCompat;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.MotionEvent;
@@ -35,8 +37,9 @@ public class HOverScrollView extends LinearLayout{
     private OverScroller mScroller;
     private VelocityTracker mVelocityTracker;
 
-    private int mScrollX = 0;
-    private int mScrollY = 0;
+    private EdgeEffectCompat mEdgeEffectTop;
+    private EdgeEffectCompat mEdgeEffectBottom;
+
 
     public HOverScrollView(Context context) {
         super(context);
@@ -62,6 +65,9 @@ public class HOverScrollView extends LinearLayout{
         mOverFlingDistance = configuration.getScaledOverflingDistance();
         mOverScrollDistance = configuration.getScaledOverscrollDistance();
         mScroller = new OverScroller(context);
+        mEdgeEffectBottom = new EdgeEffectCompat(context);
+        mEdgeEffectTop = new EdgeEffectCompat(context);
+        setOverScrollMode(OVER_SCROLL_ALWAYS);
     }
 
     private void initVelocityTrackerIfNotExist() {
@@ -74,6 +80,41 @@ public class HOverScrollView extends LinearLayout{
             mVelocityTracker.recycle();
         }
     }
+
+    @Override
+    protected void onDraw(Canvas canvas) {
+        super.onDraw(canvas);
+        if (mEdgeEffectTop != null) {
+            final int scrollY = getScrollY();
+            if (!mEdgeEffectTop.isFinished()) {
+                final int count = canvas.save();
+                final int width = getWidth() - getPaddingLeft() - getPaddingRight();
+                canvas.translate(getPaddingLeft(),Math.min(0,scrollY));
+                mEdgeEffectTop.setSize(width,getHeight());
+                if (mEdgeEffectTop.draw(canvas)) {
+                    postInvalidate();
+                }
+                canvas.restoreToCount(count);
+            }
+
+        }
+        if (mEdgeEffectBottom != null) {
+            final int scrollY = getScrollY();
+            if (!mEdgeEffectBottom.isFinished()) {
+                final int count = canvas.save();
+                final int width = getWidth() - getPaddingLeft() - getPaddingRight();
+                canvas.translate(-width+getPaddingLeft(),Math.max(getScrollRange(),scrollY)+getHeight());
+                canvas.rotate(180,width,0);
+                mEdgeEffectTop.setSize(width,getHeight());
+                if (mEdgeEffectTop.draw(canvas)) {
+                    postInvalidate();
+                }
+                canvas.restoreToCount(count);
+            }
+
+        }
+    }
+
     @Override
     public boolean onInterceptTouchEvent(MotionEvent ev) {
         final int action = MotionEventCompat.getActionMasked(ev);
@@ -105,6 +146,7 @@ public class HOverScrollView extends LinearLayout{
                     mLastY = y;
                     initVelocityTrackerIfNotExist();
                     mVelocityTracker.addMovement(ev);
+
 
                     final ViewParent parent = getParent();
                     if (parent != null) {
@@ -185,8 +227,28 @@ public class HOverScrollView extends LinearLayout{
 
                 if (mIsBeingDragged) {
                     //直接滑动
-                    Log.e("TEST",deltaY+"");
-                    overScrollBy(0,(int)deltaY,0,getScrollY(),0,getScrollRange(),0,mOverScrollDistance,true);
+                    Log.e("TEST","overscroll"+deltaY+" scrollRange"+getScrollRange()+" overScrollDistance"+mOverScrollDistance);
+                    overScrollBy(0,(int)deltaY,0,getScrollY(),0,getScrollRange(),0,1000,true);
+
+                    //EdgeEffect
+                    final int pulledToY = (int)y;
+                    if (pulledToY<0) {
+                        mEdgeEffectTop.onPull(deltaY/getHeight(),event.getX(mActivePointerId)/getWidth());
+                        if (!mEdgeEffectBottom.isFinished()) {
+                            mEdgeEffectBottom.onRelease();
+                        }
+                    } else if(pulledToY> getScrollRange()) {
+                        mEdgeEffectBottom.onPull(deltaY/getHeight(),1.0f-event.getX(mActivePointerId)/getWidth());
+                        if (!mEdgeEffectTop.isFinished()) {
+                            mEdgeEffectTop.onRelease();
+                        }
+                    }
+
+
+
+
+
+
                     mLastY = y;
                 }
                 if (mSecondaryPointerId != INVALID_ID) {
@@ -201,6 +263,7 @@ public class HOverScrollView extends LinearLayout{
                 if (mIsBeingDragged) {
                     mVelocityTracker.computeCurrentVelocity(1000,mMaxFlingSpeed);
                     int initialVelocity = (int)mVelocityTracker.getYVelocity(mActivePointerId);
+                    Log.e("TEST","velocity"+initialVelocity+" "+mMinFlingSpeed);
                     if (Math.abs(initialVelocity) > mMinFlingSpeed) {
                         // fling
                         doFling(-initialVelocity);
@@ -240,16 +303,15 @@ public class HOverScrollView extends LinearLayout{
     }
     @Override
     protected void onOverScrolled(int scrollX, int scrollY, boolean clampedX, boolean clampedY) {
-        Log.e("TEST","onOverScrolled"+scrollX);
+        Log.e("TEST","onOverScrolled x"+scrollX+" y"+scrollY);
         if (!mScroller.isFinished()) {
-            int oldX = mScrollX;
-            int oldY = mScrollY;
-            mScrollX = scrollX;
-            mScrollY = scrollY;
-            onScrollChanged(mScrollX,mScrollY,oldX,oldY);
-
+            int oldX = getScrollX();
+            int oldY = getScrollY();
+            scrollTo(scrollX,scrollY);
+            onScrollChanged(scrollX,scrollY,oldX,oldY);
+            Log.e("TEST","ddd");
             if (clampedY) {
-                mScroller.springBack(mScrollX,mScrollY,0,0,0,getScrollRange());
+                mScroller.springBack(getScrollX(),getScrollY(),0,0,0,getScrollRange());
             }
         } else {
             // TouchEvent中的overScroll调用
@@ -259,14 +321,28 @@ public class HOverScrollView extends LinearLayout{
 
     @Override
     public void computeScroll() {
+        Log.e("TEST","computeScroll");
         if (mScroller.computeScrollOffset()) {
-            int oldX = mScrollX;
-            int oldY = mScrollY;
+            int oldX = getScrollX();
+            int oldY = getScrollY();
             int x = mScroller.getCurrX();
             int y = mScroller.getCurrY();
+            Log.e("TEST","computeScroll value is"+oldX+" "+oldY+"x"+x+" y"+y);
+
             int range = getScrollRange();
             if (oldX != x || oldY != y) {
-                overScrollBy(x-oldX,y-oldY,oldX,oldY,0,range,0,mOverFlingDistance,false);
+                Log.e("TEST","computeScroll");
+                overScrollBy(x-oldX,y-oldY,oldX,oldY,0,range,-100,1000,false);
+            }
+            final int overScrollMode = getOverScrollMode();
+            final boolean canOverScroll = overScrollMode == OVER_SCROLL_ALWAYS ||
+                    (overScrollMode == OVER_SCROLL_IF_CONTENT_SCROLLS && range > 0);
+            if (canOverScroll) {
+                if (y<0 && oldY >= 0) {
+                    mEdgeEffectTop.onAbsorb((int)mScroller.getCurrVelocity());
+                } else if (y> range && oldY < range) {
+                    mEdgeEffectBottom.onAbsorb((int)mScroller.getCurrVelocity());
+                }
             }
         }
     }
@@ -276,6 +352,11 @@ public class HOverScrollView extends LinearLayout{
             View child = getChildAt(0);
             scrollRange= Math.max(0,child.getHeight()-(getHeight()-getPaddingBottom()-getPaddingTop()));
         }
-        return 10000;
+        return 1000;
+    }
+
+    @Override
+    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
     }
 }
