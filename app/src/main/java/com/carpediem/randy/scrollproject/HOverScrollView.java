@@ -8,7 +8,6 @@ import android.util.AttributeSet;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.VelocityTracker;
-import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewParent;
 import android.widget.LinearLayout;
@@ -68,6 +67,8 @@ public class HOverScrollView extends LinearLayout{
         mEdgeEffectBottom = new EdgeEffectCompat(context);
         mEdgeEffectTop = new EdgeEffectCompat(context);
         setOverScrollMode(OVER_SCROLL_ALWAYS);
+        // 这里还是需要的。overScrollBy中会使用到
+
     }
 
     private void initVelocityTrackerIfNotExist() {
@@ -289,7 +290,6 @@ public class HOverScrollView extends LinearLayout{
         if (mScroller == null) {
             return;
         }
-        Log.e("TEST","dddd");
         mScroller.fling(0,getScrollY(),0,speed,0,0,-500,10000);
         invalidate();
     }
@@ -314,7 +314,6 @@ public class HOverScrollView extends LinearLayout{
             int oldY = getScrollY();
             scrollTo(scrollX,scrollY);
             onScrollChanged(scrollX,scrollY,oldX,oldY);
-            Log.e("TEST","ddd");
             if (clampedY) {
                 Log.e("TEST1","springBack");
                 mScroller.springBack(getScrollX(),getScrollY(),0,0,0,getScrollRange());
@@ -327,18 +326,16 @@ public class HOverScrollView extends LinearLayout{
 
     @Override
     public void computeScroll() {
-        Log.e("TEST","computeScroll");
         if (mScroller.computeScrollOffset()) {
             int oldX = getScrollX();
             int oldY = getScrollY();
             int x = mScroller.getCurrX();
             int y = mScroller.getCurrY();
-            Log.e("TEST","computeScroll value is"+oldX+" "+oldY+"x"+x+" y"+y);
 
             int range = getScrollRange();
             if (oldX != x || oldY != y) {
-                Log.e("TEST","computeScroll");
-                overScrollBy(x-oldX,y-oldY,oldX,oldY,0,range,0,1000,false);
+                Log.e("TEST","computeScroll value is"+(y-oldY)+"oldY"+oldY);
+                overScrollBy(x-oldX,y-oldY,oldX,oldY,0,range,0,100,false);
             }
             final int overScrollMode = getOverScrollMode();
             final boolean canOverScroll = overScrollMode == OVER_SCROLL_ALWAYS ||
@@ -352,13 +349,21 @@ public class HOverScrollView extends LinearLayout{
             }
         }
     }
+
     private int getScrollRange() {
         int scrollRange = 0;
         if (getChildCount() >0) {
-            View child = getChildAt(0);
-            scrollRange= Math.max(0,child.getHeight()-(getHeight()-getPaddingBottom()-getPaddingTop()));
+            int totalHeight = 0;
+            if (getChildCount() > 0) {
+                for(int i=0;i<getChildCount();i++) {
+                    totalHeight += getChildAt(i).getHeight();
+                    //先假设没有margin的情况
+                }
+            }
+            scrollRange = Math.max(0,totalHeight-getHeight());
         }
-        return 2000;
+        Log.e("TEST","scrollRange is"+scrollRange);
+        return scrollRange;
     }
 
 }
