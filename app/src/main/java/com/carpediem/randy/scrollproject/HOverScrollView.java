@@ -66,8 +66,17 @@ public class HOverScrollView extends LinearLayout{
         mScroller = new OverScroller(context);
         mEdgeEffectBottom = new EdgeEffectCompat(context);
         mEdgeEffectTop = new EdgeEffectCompat(context);
+        //一般来说mOverScrollDistance为0，OverFlingDistance不一致，这里为了整强显示效果
+        mOverFlingDistance = 50;
+
         setOverScrollMode(OVER_SCROLL_ALWAYS);
         // 这里还是需要的。overScrollBy中会使用到
+        /**
+         * Because by default a layout does not need to draw,
+         * so an optimization is to not call is draw method. By calling setWillNotDraw(
+         * false) you tell the UI toolkit that you want to draw
+         */
+        setWillNotDraw(false); //必须！！！！
 
     }
 
@@ -82,12 +91,9 @@ public class HOverScrollView extends LinearLayout{
         }
     }
 
-
-
     @Override
     public void draw(Canvas canvas) {
         super.draw(canvas);
-        Log.e("effect","draw");
         if (mEdgeEffectTop != null) {
             final int scrollY = getScrollY();
             if (!mEdgeEffectTop.isFinished()) {
@@ -102,21 +108,21 @@ public class HOverScrollView extends LinearLayout{
             }
 
         }
-//        if (mEdgeEffectBottom != null) {
-//            final int scrollY = getScrollY();
-//            if (!mEdgeEffectBottom.isFinished()) {
-//                final int count = canvas.save();
-//                final int width = getWidth() - getPaddingLeft() - getPaddingRight();
-//                canvas.translate(-width+getPaddingLeft(),Math.max(getScrollRange(),scrollY)+getHeight());
-//                canvas.rotate(180,width,0);
-//                mEdgeEffectTop.setSize(width,getHeight());
-//                if (mEdgeEffectTop.draw(canvas)) {
-//                    postInvalidate();
-//                }
-//                canvas.restoreToCount(count);
-//            }
-//
-//        }
+        if (mEdgeEffectBottom != null) {
+            final int scrollY = getScrollY();
+            if (!mEdgeEffectBottom.isFinished()) {
+                final int count = canvas.save();
+                final int width = getWidth() - getPaddingLeft() - getPaddingRight();
+                canvas.translate(-width+getPaddingLeft(),Math.max(getScrollRange(),scrollY)+getHeight());
+                canvas.rotate(180,width,0);
+                mEdgeEffectTop.setSize(width,getHeight());
+                if (mEdgeEffectTop.draw(canvas)) {
+                    postInvalidate();
+                }
+                canvas.restoreToCount(count);
+            }
+
+        }
     }
 
 
@@ -233,12 +239,11 @@ public class HOverScrollView extends LinearLayout{
                 if (mIsBeingDragged) {
                     //直接滑动
                     Log.e("TEST","overscroll"+deltaY+" scrollRange"+getScrollRange()+" overScrollDistance"+mOverScrollDistance);
-                    overScrollBy(0,(int)deltaY,0,getScrollY(),0,getScrollRange(),0,1000,true);
+                    overScrollBy(0,(int)deltaY,0,getScrollY(),0,getScrollRange(),0,mOverScrollDistance,true);
 
                     //EdgeEffect
                     final int pulledToY = (int)(getScrollY()+deltaY);
                     mLastY = y;
-                    Log.e("TEST","pulledTOY"+pulledToY);
                     if (pulledToY<0) {
                         Log.e("TEST","pulledTOY top"+getHeight()+"deltaY"+deltaY);
                         mEdgeEffectTop.onPull(-100,event.getX(mActivePointerId)/getWidth());
@@ -335,7 +340,7 @@ public class HOverScrollView extends LinearLayout{
             int range = getScrollRange();
             if (oldX != x || oldY != y) {
                 Log.e("TEST","computeScroll value is"+(y-oldY)+"oldY"+oldY);
-                overScrollBy(x-oldX,y-oldY,oldX,oldY,0,range,0,100,false);
+                overScrollBy(x-oldX,y-oldY,oldX,oldY,0,range,0,mOverFlingDistance,false);
             }
             final int overScrollMode = getOverScrollMode();
             final boolean canOverScroll = overScrollMode == OVER_SCROLL_ALWAYS ||
