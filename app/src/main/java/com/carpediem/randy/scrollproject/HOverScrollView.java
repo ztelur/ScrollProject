@@ -115,8 +115,8 @@ public class HOverScrollView extends LinearLayout{
                 final int width = getWidth() - getPaddingLeft() - getPaddingRight();
                 canvas.translate(-width+getPaddingLeft(),Math.max(getScrollRange(),scrollY)+getHeight());
                 canvas.rotate(180,width,0);
-                mEdgeEffectTop.setSize(width,getHeight());
-                if (mEdgeEffectTop.draw(canvas)) {
+                mEdgeEffectBottom.setSize(width,getHeight());
+                if (mEdgeEffectBottom.draw(canvas)) {
                     postInvalidate();
                 }
                 canvas.restoreToCount(count);
@@ -246,7 +246,7 @@ public class HOverScrollView extends LinearLayout{
                     mLastY = y;
                     if (pulledToY<0) {
                         Log.e("TEST","pulledTOY top"+getHeight()+"deltaY"+deltaY);
-                        mEdgeEffectTop.onPull(-100,event.getX(mActivePointerId)/getWidth());
+                        mEdgeEffectTop.onPull(deltaY/getHeight(),event.getX(mActivePointerId)/getWidth());
                         if (!mEdgeEffectBottom.isFinished()) {
                             mEdgeEffectBottom.onRelease();
                         }
